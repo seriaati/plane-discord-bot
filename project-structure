@@ -1,0 +1,14 @@
+plane-discord-bot/
+├── src/
+│   ├── commands/
+│   │   ├── createIssue.js
+│   │   └── getIssues.js
+│   ├── config/
+│   │   └── config.js
+│   ├── services/
+│   │   └── planeApi.js
+│   └── index.js
+├── .env
+├── .gitignore
+├── package.json
+└── README.md 
