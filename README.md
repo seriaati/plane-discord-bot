@@ -2,26 +2,55 @@
 
 A Discord bot that integrates with [Plane](https://plane.so), an open-source project planning tool. This bot allows you to manage Plane issues directly from Discord with rich visual embeds and interactive features.
 
-## About Plane
+![MIT License](https://img.shields.io/badge/License-MIT-blue.svg)
+![Node Version](https://img.shields.io/badge/node-%3E%3D16.9.0-brightgreen)
+![Discord.js](https://img.shields.io/badge/discord.js-v14-blue)
 
-[Plane](https://plane.so) is a comprehensive project planning platform that offers:
+## Plane Interface
 
-- Real-time issue tracking and project management
-- Customizable workflows and states
-- Rich API integration capabilities
-- Open-source flexibility
-- Modern and intuitive interface
+![Plane Interface](examples/plane.png)
 
-This Discord bot leverages Plane's powerful API to bring project management directly into your Discord server.
+The bot integrates with Plane's modern and intuitive interface, allowing you to manage your projects seamlessly between Discord and Plane's web interface. Above is an example of Plane's project management view, showcasing its clean design and powerful features.
+
+## Interface Examples
+
+### View Issue Command
+
+![View Issue Example](examples/view-issue.png)
+
+```
+/view-issue
+Shows issue details with:
+• Title and ID
+• Priority with color indicators (🔴 HIGH, 🟠 MEDIUM, etc.)
+• State with icons (📋 Backlog, ✅ Done, etc.)
+• Attachments with previews
+• Labels
+• Creation and update timestamps
+```
+
+### Get Issues Command
+
+![Get Issues Example](examples/get-issues.png)
+
+```
+/get-issues
+Lists issues with:
+• Summary of total issues found
+• Individual issue cards
+• Priority and state indicators
+• Labels and timestamps
+• Quick links to Plane
+```
 
 ## Features
 
 - Create new issues with title, description, and priority
 - List issues with filtering by state and priority
 - View detailed issue information with rich embeds
-- Color-coded priority levels
+- Color-coded priority levels (🔴 Urgent, 🟠 High, 🟡 Medium, 🟢 Low)
 - Support for issue labels and attachments
-- Automatic state tracking
+- Automatic state tracking with visual indicators
 - Beautiful Discord embeds with formatted descriptions
 - Direct integration with Plane's API
 
@@ -82,10 +111,10 @@ Create a new issue in Plane
   - `title` (required): Issue title
   - `description` (required): Issue description
   - `priority` (required): Priority level
-    - Low
-    - Medium
-    - High
-    - Urgent
+    - 🔴 Urgent
+    - 🟠 High
+    - 🟡 Medium
+    - 🟢 Low
 
 ### `/get-issues`
 
@@ -94,10 +123,10 @@ List issues with optional filters
 - Options:
   - `state`: Filter by state name (e.g., Backlog, In Progress, Done)
   - `priority`: Filter by priority level
-    - Low
-    - Medium
-    - High
-    - Urgent
+    - 🔴 Urgent
+    - 🟠 High
+    - 🟡 Medium
+    - 🟢 Low
 
 ### `/view-issue`
 
@@ -144,28 +173,26 @@ For development with hot-reloading:
 npm run dev
 ```
 
-## Scripts
+## Docker Support
 
-- `npm start`: Start the bot
-- `npm run dev`: Start with nodemon for development
-- `npm run deploy`: Deploy slash commands to Discord
+Build the container:
 
-## Project Structure
-
+```bash
+docker build -t plane-discord-bot .
 ```
-plane-discord-bot/
-├── src/
-│   ├── commands/          # Discord slash commands
-│   │   ├── createIssue.js
-│   │   ├── getIssues.js
-│   │   └── viewIssue.js
-│   ├── config/           # Configuration management
-│   │   └── config.js
-│   ├── services/         # API services
-│   │   └── planeApi.js   # Plane API integration
-│   └── index.js          # Main bot file
-├── .env                  # Environment variables
-└── package.json
+
+Run with Docker:
+
+```bash
+docker run -d \
+  --name plane-bot \
+  --restart unless-stopped \
+  -e DISCORD_TOKEN=your_discord_token \
+  -e PLANE_API_KEY=your_plane_api_key \
+  -e WORKSPACE_SLUG=your_workspace_slug \
+  -e PROJECT_ID=your_project_id \
+  -e CLIENT_ID=your_discord_client_id \
+  plane-discord-bot
 ```
 
 ## Contributing
@@ -178,7 +205,7 @@ plane-discord-bot/
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Links
 
