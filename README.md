@@ -29,6 +29,23 @@ Shows issue details with:
 • Creation and update timestamps
 ```
 
+### Create Issue Command
+
+![Create Issue Example](examples/create-issue.png)
+
+```
+/create-issue
+Create new issues with:
+• Title and description
+• Priority selection with visual indicators (🔴 Urgent, 🟠 High, 🟡 Medium, 🟢 Low)
+• Rich success embed showing:
+  - Issue ID and title
+  - Priority color coding
+  - Creation timestamp
+  - Direct link to the created issue
+• Error handling with clear feedback
+```
+
 ### Get Issues Command
 
 ![Get Issues Example](examples/get-issues.png)
