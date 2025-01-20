@@ -1,6 +1,7 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const planeService = require("../services/planeApi");
-const { formatDate } = require("../utils");
+const logger = require("../utils/logger");
+const { formatDate } = require("../utils/utils");
 // Helper functions
 const getPriorityColor = (priority) => {
   const colors = {
@@ -167,7 +168,31 @@ module.exports = {
 
     try {
       const sequenceId = interaction.options.getString("id").toUpperCase();
+
+      logger.info("View issue command initiated", {
+        user: interaction.user.tag,
+        guild: interaction.guild?.name,
+        issueId: sequenceId
+      });
+
+      // Show progress
+      await interaction.editReply({
+        embeds: [
+          new EmbedBuilder()
+            .setTitle("⏳ Fetching Issue...")
+            .setDescription("Please wait while the issue details are being fetched.")
+            .setColor(0xfbbf24)
+            .setTimestamp()
+        ]
+      });
+
       const issue = await planeService.getIssueBySequenceId(sequenceId);
+
+      logger.debug("Issue fetched successfully", {
+        issueId: issue.id,
+        hasAttachments: issue.attachments?.length > 0,
+        hasLabels: issue.label_details?.length > 0
+      });
 
       const issueUrl = getIssueUrl(
         planeService.config.WORKSPACE_SLUG,
@@ -192,9 +217,7 @@ module.exports = {
       mainEmbed.addFields({
         name: "Status",
         value: [
-          `**Priority:** ${getPriorityEmoji(issue.priority)} ${
-            issue.priority?.toUpperCase() || "None"
-          }`,
+          `**Priority:** ${getPriorityEmoji(issue.priority)} ${issue.priority?.toUpperCase() || "None"}`,
           `**State:** ${formatState(
             issue.state_detail?.name,
             issue.state_detail?.group
@@ -207,6 +230,10 @@ module.exports = {
 
       // Handle attachments
       if (issue.attachments?.length > 0) {
+        logger.debug("Processing attachments", {
+          count: issue.attachments.length
+        });
+
         const { text } = formatAttachments(issue.attachments);
 
         // Add non-image attachments as field
@@ -228,6 +255,10 @@ module.exports = {
 
       // Add label embeds if present
       if (issue.label_details?.length > 0) {
+        logger.debug("Processing labels", {
+          count: issue.label_details.length
+        });
+
         const labelFields = formatLabels(issue.label_details);
         // Group labels in a single embed
         const labelsEmbed = new EmbedBuilder()
@@ -245,14 +276,18 @@ module.exports = {
         embeds.push(labelsEmbed);
       }
 
+      logger.info("Issue details displayed successfully", {
+        issueId: issue.id,
+        embedCount: embeds.length
+      });
+
       await interaction.editReply({ embeds });
     } catch (error) {
-      console.error("Error in viewIssue:", error);
+      logger.error("Error viewing issue", error);
+
       const errorEmbed = new EmbedBuilder()
-        .setTitle("❌ Error")
-        .setDescription(
-          "Failed to fetch issue. Please check if the issue ID is correct and try again."
-        )
+        .setTitle("❌ Failed to View Issue")
+        .setDescription(error.message || "An unexpected error occurred while fetching the issue.")
         .setColor(0xdc2626)
         .setTimestamp();
 

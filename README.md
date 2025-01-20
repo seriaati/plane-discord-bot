@@ -118,39 +118,105 @@ npm run deploy
 npm start
 ```
 
-## Available Commands
+## Commands
 
 ### `/create-issue`
 
-Create a new issue in Plane
+Create a new issue in Plane.
 
-- Options:
-  - `title` (required): Issue title
-  - `description` (required): Issue description
-  - `priority` (required): Priority level
-    - 🔴 Urgent
-    - 🟠 High
-    - 🟡 Medium
-    - 🟢 Low
+![Create Issue Example](examples/create-issue.png)
 
-### `/get-issues`
+**Options:**
 
-List issues with optional filters
+- `title` (required): The title of the issue
+- `description` (optional): The description of the issue
+- `priority` (optional): The priority level
+  - 🔴 Urgent
+  - 🟠 High
+  - 🟡 Medium
+  - 🟢 Low
 
-- Options:
-  - `state`: Filter by state name (e.g., Backlog, In Progress, Done)
-  - `priority`: Filter by priority level
-    - 🔴 Urgent
-    - 🟠 High
-    - 🟡 Medium
-    - 🟢 Low
+**Example:**
+
+```
+/create-issue title: Fix login bug description: Users can't login with Google priority: high
+```
 
 ### `/view-issue`
 
-View detailed information about a specific issue
+View detailed information about a specific issue.
 
-- Options:
-  - `id` (required): The sequence ID of the issue (e.g., PROJ-123)
+![View Issue Example](examples/view-issue.png)
+
+**Options:**
+
+- `id` (required): The sequence ID of the issue (e.g., PROJ-123)
+
+**Example:**
+
+```
+/view-issue id: PROJ-123
+```
+
+Shows:
+
+- Issue title and ID
+- Description
+- Priority and state
+- Labels (if any)
+- Attachments (if any)
+- Quick actions
+
+### `/get-issues`
+
+Get a list of issues with optional filters.
+
+![Get Issues Example](examples/get-issues.png)
+
+**Options:**
+
+- `state` (optional): Filter by state
+  - 📋 Backlog
+  - ⭕ Unstarted
+  - ▶️ Started
+  - ✅ Completed
+  - ❌ Cancelled
+- `priority` (optional): Filter by priority
+  - 🔴 Urgent
+  - 🟠 High
+  - 🟡 Medium
+  - 🟢 Low
+
+**Example:**
+
+```
+/get-issues state: started priority: high
+```
+
+### `/upload-file`
+
+Upload a file to an existing issue.
+
+![Upload File Example](examples/upload-file.png)
+
+**Options:**
+
+- `id` (required): The sequence ID of the issue (e.g., PROJ-123)
+- `file` (required): The file to upload (max 10MB)
+
+**Example:**
+
+```
+/upload-file id: PROJ-123 file: screenshot.png
+```
+
+Supported file types:
+
+- Images: png, jpg, jpeg, gif, bmp, webp
+- Documents: pdf, doc, docx, xls, xlsx, ppt, pptx, txt, rtf
+- Archives: zip, rar, 7z, tar, gz
+- Code: js, jsx, ts, tsx, py, java, cpp, cs, html, css
+- Other: md, json, xml, yaml, yml
 
 ## Visual Features
 
@@ -229,3 +295,49 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Plane Website](https://plane.so)
 - [Plane API Documentation](https://developers.plane.so)
 - [Discord.js Documentation](https://discord.js.org)
+
+## Environment Variables
+
+Create a `.env` file in the root directory with the following configuration:
+
+```env
+# Discord Bot Configuration
+DISCORD_TOKEN=your_discord_bot_token    # Your Discord bot token from Discord Developer Portal
+CLIENT_ID=your_discord_client_id        # Your Discord application client ID
+
+# Plane Configuration
+PLANE_API_KEY=your_plane_api_key        # Your Plane API key from Settings > API Tokens
+WORKSPACE_SLUG=your_workspace_slug      # Found in your Plane workspace URL
+PROJECT_ID=your_project_id             # Found in Project Settings > General
+
+# Logging Configuration
+LOG_LEVEL=info                         # Logging level: debug, info, warn, error
+ENABLE_FILE_LOGS=false                 # Enable logging to files: true/false
+```
+
+### Where to Find the Values
+
+#### Discord Configuration
+
+1. Go to [Discord Developer Portal](https://discord.com/developers/applications)
+2. Create or select your application
+3. `CLIENT_ID`: Found in OAuth2 > General
+4. `DISCORD_TOKEN`: Found in Bot > Token (Reset Token if needed)
+
+#### Plane Configuration
+
+1. `WORKSPACE_SLUG`: The identifier in your Plane workspace URL
+   - Example: `https://app.plane.so/YOUR-WORKSPACE-SLUG/...`
+2. `PROJECT_ID`: Found in Project Settings > General
+3. `PLANE_API_KEY`: Generate from Settings > API Tokens
+
+#### Logging Configuration
+
+- `LOG_LEVEL`: Set the verbosity of logs
+  - `error`: Only errors
+  - `warn`: Errors and warnings
+  - `info`: General information (recommended)
+  - `debug`: Detailed debugging information
+- `ENABLE_FILE_LOGS`: Enable logging to files
+  - `true`: Logs will be saved to `logs/` directory
+  - `false`: Logs only appear in console

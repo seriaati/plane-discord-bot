@@ -1,7 +1,15 @@
+require('dotenv').config();
 const { Client, Collection, Events, GatewayIntentBits } = require("discord.js");
 const fs = require("node:fs");
 const path = require("node:path");
 const config = require("./config/config");
+const logger = require("./utils/logger");
+
+// Log startup information
+logger.info("Starting Discord bot...", {
+  node_version: process.version,
+  platform: process.platform
+});
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
@@ -16,11 +24,15 @@ for (const file of commandFiles) {
   const command = require(filePath);
   if ("data" in command && "execute" in command) {
     client.commands.set(command.data.name, command);
+    logger.debug(`Loaded command: ${command.data.name}`);
   }
 }
 
 client.once(Events.ClientReady, () => {
-  console.log("Bot is ready!");
+  logger.info("Discord bot is ready!", {
+    username: client.user.tag,
+    guilds: client.guilds.cache.size
+  });
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
@@ -30,16 +42,18 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const command = client.commands.get(interaction.commandName);
 
       if (!command) {
-        console.error(
-          `No command matching ${interaction.commandName} was found.`
-        );
+        logger.warn(`No command matching ${interaction.commandName} was found.`);
         return;
       }
 
       try {
+        logger.debug(`Executing command: ${interaction.commandName}`, {
+          user: interaction.user.tag,
+          guild: interaction.guild?.name
+        });
         await command.execute(interaction);
       } catch (error) {
-        console.error(error);
+        logger.error(`Error executing command: ${interaction.commandName}`, error);
         if (interaction.replied || interaction.deferred) {
           await interaction.followUp({
             content: "There was an error executing this command!",
@@ -54,8 +68,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
     }
   } catch (error) {
-    console.error("Error in interaction handler:", error);
+    logger.error("Error in interaction handler", error);
   }
 });
 
-client.login(config.DISCORD_TOKEN);
+client.login(config.DISCORD_TOKEN).catch(error => {
+  logger.error("Failed to login to Discord", error);
+  process.exit(1);
+});

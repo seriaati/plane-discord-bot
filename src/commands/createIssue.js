@@ -1,6 +1,7 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const planeService = require("../services/planeApi");
-const { formatDate } = require("../utils");
+const logger = require("../utils/logger");
+const { formatDate } = require("../utils/utils");
 
 // Import shared helper functions
 const getPriorityEmoji = (priority) => {
@@ -42,13 +43,13 @@ module.exports = {
       option
         .setName("description")
         .setDescription("The description of the issue")
-        .setRequired(true)
+        .setRequired(false)
     )
     .addStringOption((option) =>
       option
         .setName("priority")
         .setDescription("The priority of the issue")
-        .setRequired(true)
+        .setRequired(false)
         .addChoices(
           { name: "🔴 Urgent", value: "urgent" },
           { name: "🟠 High", value: "high" },
@@ -61,15 +62,38 @@ module.exports = {
     await interaction.deferReply();
 
     try {
-      const title = interaction.options.getString("title");
-      const description = interaction.options.getString("description");
-      const priority = interaction.options.getString("priority");
+      logger.info("Creating new issue command initiated", {
+        user: interaction.user.tag,
+        guild: interaction.guild?.name
+      });
 
-      const issue = await planeService.createIssue(
+      const title = interaction.options.getString("title");
+      const description = interaction.options.getString("description") || "";
+      const priority = interaction.options.getString("priority") || "none";
+
+      logger.debug("Issue creation parameters", {
         title,
-        description,
+        description: description ? "Provided" : "Not provided",
         priority
-      );
+      });
+
+      // Show progress
+      await interaction.editReply({
+        embeds: [
+          new EmbedBuilder()
+            .setTitle("⏳ Creating Issue...")
+            .setDescription("Please wait while the issue is being created.")
+            .setColor(0xfbbf24)
+            .setTimestamp()
+        ]
+      });
+
+      const issue = await planeService.createIssue(title, description, priority);
+
+      logger.info("Issue created successfully", {
+        issueId: issue.id,
+        sequenceId: issue.sequence_id
+      });
 
       const issueUrl = getIssueUrl(
         planeService.config.WORKSPACE_SLUG,
@@ -90,10 +114,9 @@ module.exports = {
               `**Priority:** ${getPriorityEmoji(
                 priority
               )} ${priority.toUpperCase()}`,
-              `**Description:** ${
-                description.length > 100
-                  ? description.substring(0, 97) + "..."
-                  : description
+              `**Description:** ${description.length > 100
+                ? description.substring(0, 97) + "..."
+                : description
               }`,
             ].join("\n"),
             inline: false,
@@ -109,10 +132,11 @@ module.exports = {
 
       await interaction.editReply({ embeds: [successEmbed] });
     } catch (error) {
-      console.error("Error in createIssue:", error);
+      logger.error("Error creating issue", error);
+
       const errorEmbed = new EmbedBuilder()
-        .setTitle("❌ Error")
-        .setDescription("Failed to create issue. Please try again later.")
+        .setTitle("❌ Failed to Create Issue")
+        .setDescription(error.message || "An unexpected error occurred while creating the issue.")
         .setColor(0xdc2626)
         .setTimestamp();
 

@@ -1,6 +1,7 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const planeService = require("../services/planeApi");
-const { formatDate } = require("../utils");
+const logger = require("../utils/logger");
+const { formatDate } = require("../utils/utils");
 
 // Helper functions
 const getPriorityColor = (priority) => {
@@ -65,21 +66,30 @@ const formatLabels = (labels) => {
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("get-issues")
-    .setDescription("Get issues from Plane")
+    .setDescription("Get a list of issues")
     .addStringOption((option) =>
       option
         .setName("state")
-        .setDescription("Filter by state name (e.g., Backlog, In Progress)")
+        .setDescription("Filter by state")
+        .setRequired(false)
+        .addChoices(
+          { name: "Backlog", value: "backlog" },
+          { name: "Unstarted", value: "unstarted" },
+          { name: "Started", value: "started" },
+          { name: "Completed", value: "completed" },
+          { name: "Cancelled", value: "cancelled" }
+        )
     )
     .addStringOption((option) =>
       option
         .setName("priority")
-        .setDescription("Filter by priority level")
+        .setDescription("Filter by priority")
+        .setRequired(false)
         .addChoices(
-          { name: "🔴 Urgent", value: "urgent" },
-          { name: "🟠 High", value: "high" },
-          { name: "🟡 Medium", value: "medium" },
-          { name: "🟢 Low", value: "low" }
+          { name: "Urgent", value: "urgent" },
+          { name: "High", value: "high" },
+          { name: "Medium", value: "medium" },
+          { name: "Low", value: "low" }
         )
     ),
 
@@ -87,27 +97,37 @@ module.exports = {
     await interaction.deferReply();
 
     try {
-      const filters = {};
       const state = interaction.options.getString("state");
       const priority = interaction.options.getString("priority");
 
-      if (state) filters.state = state;
-      if (priority) filters.priority = priority;
+      logger.info("Getting issues command initiated", {
+        user: interaction.user.tag,
+        guild: interaction.guild?.name,
+        filters: { state, priority }
+      });
 
-      const issues = await planeService.getAllIssues(filters);
+      // Show progress
+      await interaction.editReply({
+        embeds: [
+          new EmbedBuilder()
+            .setTitle("⏳ Fetching Issues...")
+            .setDescription("Please wait while the issues are being fetched.")
+            .setColor(0xfbbf24)
+            .setTimestamp()
+        ]
+      });
 
-      if (!issues.results || issues.results.length === 0) {
+      const response = await planeService.getAllIssues({
+        state,
+        priority,
+      });
+
+      if (!response.results || response.results.length === 0) {
+        logger.info("No issues found", { filters: { state, priority } });
         const noIssuesEmbed = new EmbedBuilder()
           .setTitle("📋 No Issues Found")
           .setDescription(
-            "No issues found matching the criteria.\n\n" +
-              (state || priority ? "**Applied Filters:**\n" : "") +
-              (state ? `• State: ${state}\n` : "") +
-              (priority
-                ? `• Priority: ${getPriorityEmoji(
-                    priority
-                  )} ${priority.toUpperCase()}\n`
-                : "")
+            "No issues match your criteria. Try different filters or create a new issue."
           )
           .setColor(0x6b7280)
           .setTimestamp();
@@ -116,80 +136,53 @@ module.exports = {
         return;
       }
 
-      // Create summary embed
-      const summaryEmbed = new EmbedBuilder()
-        .setTitle("📋 Issue List")
-        .setColor(0x0ea5e9)
-        .setDescription(
-          `Found ${issues.results.length} issue${
-            issues.results.length === 1 ? "" : "s"
-          }` +
-            (state || priority ? "\n\n**Applied Filters:**\n" : "") +
-            (state ? `• State: ${state}\n` : "") +
-            (priority
-              ? `• Priority: ${getPriorityEmoji(
-                  priority
-                )} ${priority.toUpperCase()}\n`
-              : "")
-        )
+      logger.info("Issues fetched successfully", {
+        count: response.results.length,
+        totalCount: response.count
+      });
+
+      // Create the main embed
+      const issuesEmbed = new EmbedBuilder()
+        .setTitle("📋 Issues List")
+        .setColor(0x3b82f6)
         .setTimestamp();
 
-      // Create issue embeds
-      const issueEmbeds = issues.results.slice(0, 10).map((issue) => {
-        const issueUrl = getIssueUrl(
-          planeService.config.WORKSPACE_SLUG,
-          planeService.config.PROJECT_ID,
-          issue.id
+      // Add summary field
+      issuesEmbed.addFields({
+        name: "Summary",
+        value: `Showing ${response.results.length} of ${response.count} issues`,
+        inline: false,
+      });
+
+      // Add each issue as a field
+      response.results.forEach((issue) => {
+        const issueUrl = `https://app.plane.so/${planeService.config.WORKSPACE_SLUG}/projects/${planeService.config.PROJECT_ID}/issues/${issue.id}`;
+        const priorityEmoji = getPriorityEmoji(issue.priority);
+        const stateText = formatState(
+          issue.state_detail?.name,
+          issue.state_detail?.group
         );
 
-        return new EmbedBuilder()
-          .setColor(getPriorityColor(issue.priority))
-          .setTitle(`${issue.formatted_id} ${issue.name || "Untitled Issue"}`)
-          .setURL(issueUrl)
-          .setDescription(formatDescription(issue.description))
-          .addFields(
-            {
-              name: "Status",
-              value: [
-                `**Priority:** ${getPriorityEmoji(issue.priority)} ${
-                  issue.priority?.toUpperCase() || "None"
-                }`,
-                `**State:** ${formatState(
-                  issue.state_detail?.name,
-                  issue.state_detail?.group
-                )}`,
-              ].join("\n"),
-              inline: false,
-            },
-            {
-              name: "Labels",
-              value: formatLabels(issue.label_details),
-              inline: true,
-            },
-            {
-              name: "Created",
-              value: formatDate(issue.created_at),
-              inline: true,
-            }
-          );
-      });
-
-      // Add pagination info if needed
-      if (issues.results.length > 10) {
-        summaryEmbed.setFooter({
-          text: `Showing 10 of ${issues.results.length} issues`,
+        issuesEmbed.addFields({
+          name: `${issue.formatted_id} ${issue.name}`,
+          value: [
+            `**Priority:** ${priorityEmoji} ${issue.priority?.toUpperCase() || "None"
+            }`,
+            `**State:** ${stateText}`,
+            `**Created:** ${formatDate(issue.created_at)}`,
+            `[View in Plane](${issueUrl})`,
+          ].join("\n"),
+          inline: false,
         });
-      }
-
-      // Send all embeds
-      await interaction.editReply({
-        embeds: [summaryEmbed, ...issueEmbeds],
       });
+
+      await interaction.editReply({ embeds: [issuesEmbed] });
     } catch (error) {
-      console.error("Error in getIssues:", error);
+      logger.error("Error fetching issues", error);
+
       const errorEmbed = new EmbedBuilder()
-        .setTitle("❌ Error")
-        .setDescription("Failed to fetch issues. Please try again later.")
+        .setTitle("❌ Failed to Fetch Issues")
+        .setDescription(error.message || "An unexpected error occurred while fetching issues.")
         .setColor(0xdc2626)
         .setTimestamp();
 
