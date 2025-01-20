@@ -1,11 +1,8 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const planeService = require("../services/planeApi");
 const logger = require("../utils/logger");
+const { getIssueUrl } = require("../utils/utils");
 const axios = require("axios");
-
-const getIssueUrl = (workspaceSlug, projectId, issueId) => {
-    return `https://app.plane.so/${workspaceSlug}/projects/${projectId}/issues/${issueId}`;
-};
 
 module.exports = {
     data: new SlashCommandBuilder()

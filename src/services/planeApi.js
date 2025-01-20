@@ -562,7 +562,7 @@ class PlaneService {
       }
 
       // Step 3: Complete the upload
-      logger.debug("Completing upload process", { assetId });
+      logger.debug("Completing upload process", { asset_id });
       try {
         const completeResponse = await axios({
           method: 'patch',
@@ -575,7 +575,7 @@ class PlaneService {
         logger.info("File upload completed successfully", {
           issueId,
           fileName,
-          assetId
+          asset_id
         });
         return completeResponse.data;
       } catch (error) {

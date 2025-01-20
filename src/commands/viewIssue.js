@@ -1,93 +1,24 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const planeService = require("../services/planeApi");
 const logger = require("../utils/logger");
-const { formatDate } = require("../utils/utils");
-// Helper functions
-const getPriorityColor = (priority) => {
-  const colors = {
-    urgent: 0xdc2626, // Bright Red
-    high: 0xea580c, // Bright Orange
-    medium: 0xca8a04, // Golden Yellow
-    low: 0x16a34a, // Green
-  };
-  return colors[priority?.toLowerCase()] || 0x6b7280; // Default gray
-};
-
-const getPriorityEmoji = (priority) => {
-  const emojis = {
-    urgent: "🔴",
-    high: "🟠",
-    medium: "🟡",
-    low: "🟢",
-    none: "⚪",
-  };
-  return emojis[priority?.toLowerCase()] || emojis.none;
-};
-
-const getStateEmoji = (group) => {
-  const emojis = {
-    backlog: "📋",
-    unstarted: "⭕",
-    started: "▶️",
-    completed: "✅",
-    cancelled: "❌",
-    duplicate: "🔄",
-  };
-  return emojis[group?.toLowerCase()] || "❔";
-};
-
-const formatState = (state, group) => {
-  if (!state) return "Unknown";
-  const emoji = getStateEmoji(group);
-  const formattedState =
-    state.charAt(0).toUpperCase() + state.slice(1).toLowerCase();
-  return `${emoji} ${formattedState}`;
-};
-
-// Helper function to get state or priority color
-const getIssueColor = (issue) => {
-  // First try to use state color
-  if (issue.state_detail?.color) {
-    return parseInt(issue.state_detail.color.replace("#", ""), 16);
-  }
-  // Fallback to priority color
-  return getPriorityColor(issue.priority);
-};
-
-const formatDescription = (description) => {
-  if (!description) return "";
-  const trimmed = description.trim();
-  return trimmed ? `>>> ${trimmed}` : "";
-};
-
-const getIssueUrl = (workspaceSlug, projectId, issueId) => {
-  return `https://app.plane.so/${workspaceSlug}/projects/${projectId}/issues/${issueId}`;
-};
-
-const formatLabels = (labels) => {
-  if (!labels || labels.length === 0) return [];
-
-  return labels.map((label) => {
-    const colorInt = label.color
-      ? parseInt(label.color.replace("#", ""), 16)
-      : 0x6b7280;
-    return {
-      name: "🏷️",
-      value: `\`${label.name}\``,
-      inline: true,
-      color: colorInt,
-    };
-  });
-};
+const {
+  getPriorityEmoji,
+  formatState,
+  getIssueColor,
+  formatDate,
+  formatDescription,
+  getIssueUrl,
+  formatLabels,
+} = require("../utils/utils");
 
 const formatAttachments = (attachments) => {
-  if (!attachments || attachments.length === 0) return "No attachments";
+  if (!attachments || attachments.length === 0) return { text: "No attachments" };
 
   const otherAttachments = [];
 
   attachments.forEach((attachment) => {
-    const icon = getFileIcon(attachment.attributes.name);
-    const size = formatFileSize(attachment.attributes.size);
+    const icon = planeService.getFileIcon(attachment.attributes.name);
+    const size = planeService.formatFileSize(attachment.attributes.size);
     otherAttachments.push({
       name: attachment.attributes.name,
       url: `https://api.plane.so/api/assets/v2/workspaces/${planeService.config.WORKSPACE_SLUG}/projects/${planeService.config.PROJECT_ID}/issues/${attachment.issue}/attachments/${attachment.id}`,
@@ -100,45 +31,25 @@ const formatAttachments = (attachments) => {
 
   // Format non-image attachments as links with icons
   if (otherAttachments.length > 0) {
+    const displayAttachments = otherAttachments.slice(0, 3);
+    const remainingCount = otherAttachments.length - 3;
+
     parts.push(
-      otherAttachments
+      displayAttachments
         .map(
           (file) => `${file.icon} [${file.name}](${file.url}) (${file.size})`
         )
         .join("\n")
     );
+
+    if (remainingCount > 0) {
+      parts.push(`\n📎 +${remainingCount} more attachment${remainingCount === 1 ? '' : 's'}`);
+    }
   }
 
   return {
     text: parts.join("\n") || "No attachments",
   };
-};
-
-const getFileIcon = (filename) => {
-  const ext = filename.split(".").pop().toLowerCase();
-  const icons = {
-    pdf: "📄",
-    doc: "📝",
-    docx: "📝",
-    xls: "📊",
-    xlsx: "📊",
-    ppt: "📊",
-    pptx: "📊",
-    jpg: "🖼️",
-    jpeg: "🖼️",
-    png: "🖼️",
-    gif: "🖼️",
-    zip: "📦",
-    rar: "📦",
-    txt: "📝",
-  };
-  return icons[ext] || "📎";
-};
-
-const formatFileSize = (bytes) => {
-  if (bytes < 1024) return bytes + " B";
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
-  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
 };
 
 const formatMetadata = (issue) => {
@@ -235,7 +146,7 @@ module.exports = {
         });
 
         const { text } = formatAttachments(issue.attachments);
-
+        logger.info("Attachments processed", { text });
         // Add non-image attachments as field
         if (text !== "No attachments") {
           mainEmbed.addFields({

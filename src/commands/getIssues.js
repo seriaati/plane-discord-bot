@@ -1,67 +1,12 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const planeService = require("../services/planeApi");
 const logger = require("../utils/logger");
-const { formatDate } = require("../utils/utils");
-
-// Helper functions
-const getPriorityColor = (priority) => {
-  const colors = {
-    urgent: 0xdc2626, // Bright Red
-    high: 0xea580c, // Bright Orange
-    medium: 0xca8a04, // Golden Yellow
-    low: 0x16a34a, // Green
-  };
-  return colors[priority?.toLowerCase()] || 0x6b7280; // Default gray
-};
-
-const getPriorityEmoji = (priority) => {
-  const emojis = {
-    urgent: "🔴",
-    high: "🟠",
-    medium: "🟡",
-    low: "🟢",
-    none: "⚪",
-  };
-  return emojis[priority?.toLowerCase()] || emojis.none;
-};
-
-const getStateEmoji = (group) => {
-  const emojis = {
-    backlog: "📋",
-    unstarted: "⭕",
-    started: "▶️",
-    completed: "✅",
-    cancelled: "❌",
-    duplicate: "🔄",
-  };
-  return emojis[group?.toLowerCase()] || "❔";
-};
-
-const formatState = (state, group) => {
-  if (!state) return "Unknown";
-  const emoji = getStateEmoji(group);
-  const formattedState =
-    state.charAt(0).toUpperCase() + state.slice(1).toLowerCase();
-  return `${emoji} ${formattedState}`;
-};
-
-const formatDescription = (description) => {
-  if (!description) return "";
-  const trimmed = description.trim();
-  if (trimmed.length > 100) {
-    return `>>> ${trimmed.substring(0, 97)}...`;
-  }
-  return trimmed ? `>>> ${trimmed}` : "";
-};
-
-const getIssueUrl = (workspaceSlug, projectId, issueId) => {
-  return `https://app.plane.so/${workspaceSlug}/projects/${projectId}/issues/${issueId}`;
-};
-
-const formatLabels = (labels) => {
-  if (!labels || labels.length === 0) return "No labels";
-  return labels.map((label) => `\`${label.name}\``).join(" ");
-};
+const {
+  getPriorityEmoji,
+  formatState,
+  formatDate,
+  getIssueUrl
+} = require("../utils/utils");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -156,7 +101,11 @@ module.exports = {
 
       // Add each issue as a field
       response.results.forEach((issue) => {
-        const issueUrl = `https://app.plane.so/${planeService.config.WORKSPACE_SLUG}/projects/${planeService.config.PROJECT_ID}/issues/${issue.id}`;
+        const issueUrl = getIssueUrl(
+          planeService.config.WORKSPACE_SLUG,
+          planeService.config.PROJECT_ID,
+          issue.id
+        );
         const priorityEmoji = getPriorityEmoji(issue.priority);
         const stateText = formatState(
           issue.state_detail?.name,

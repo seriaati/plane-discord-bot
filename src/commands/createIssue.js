@@ -1,60 +1,36 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const planeService = require("../services/planeApi");
 const logger = require("../utils/logger");
-const { formatDate } = require("../utils/utils");
-
-// Import shared helper functions
-const getPriorityEmoji = (priority) => {
-  const emojis = {
-    urgent: "🔴",
-    high: "🟠",
-    medium: "🟡",
-    low: "🟢",
-    none: "⚪",
-  };
-  return emojis[priority?.toLowerCase()] || emojis.none;
-};
-
-const getPriorityColor = (priority) => {
-  const colors = {
-    urgent: 0xdc2626, // Bright Red
-    high: 0xea580c, // Bright Orange
-    medium: 0xca8a04, // Golden Yellow
-    low: 0x16a34a, // Green
-  };
-  return colors[priority?.toLowerCase()] || 0x6b7280; // Default gray
-};
-
-const getIssueUrl = (workspaceSlug, projectId, issueId) => {
-  return `https://app.plane.so/${workspaceSlug}/projects/${projectId}/issues/${issueId}`;
-};
+const {
+  getPriorityEmoji,
+  getIssueUrl,
+  getPriorityColor,
+  formatDate
+} = require("../utils/utils");
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("create-issue")
-    .setDescription("Create a new issue in Plane")
+    .setDescription("Create a new issue")
     .addStringOption((option) =>
-      option
-        .setName("title")
-        .setDescription("The title of the issue")
-        .setRequired(true)
+      option.setName("title").setDescription("Issue title").setRequired(true)
     )
     .addStringOption((option) =>
       option
         .setName("description")
-        .setDescription("The description of the issue")
+        .setDescription("Issue description")
         .setRequired(false)
     )
     .addStringOption((option) =>
       option
         .setName("priority")
-        .setDescription("The priority of the issue")
+        .setDescription("Issue priority")
         .setRequired(false)
         .addChoices(
-          { name: "🔴 Urgent", value: "urgent" },
-          { name: "🟠 High", value: "high" },
-          { name: "🟡 Medium", value: "medium" },
-          { name: "🟢 Low", value: "low" }
+          { name: "Urgent", value: "urgent" },
+          { name: "High", value: "high" },
+          { name: "Medium", value: "medium" },
+          { name: "Low", value: "low" }
         )
     ),
 
