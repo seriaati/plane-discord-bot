@@ -75,9 +75,7 @@ module.exports = {
         sequenceId: issue.sequence_id,
       });
 
-      const latestIssue = await planeService.getIssueBySequenceId(
-        issue.sequence_id
-      );
+      const latestIssue = await planeService.getIssueById(issue.id);
 
       const issueUrl = getIssueUrl(
         planeService.config.WORKSPACE_SLUG,

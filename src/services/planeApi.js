@@ -10,27 +10,43 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const FILE_ICONS = {
   // Document types
   pdf: "📄",
-  doc: "📝", docx: "📝",
-  xls: "📊", xlsx: "📊",
-  ppt: "📊", pptx: "📊",
-  txt: "📝", rtf: "📝",
+  doc: "📝",
+  docx: "📝",
+  xls: "📊",
+  xlsx: "📊",
+  ppt: "📊",
+  pptx: "📊",
+  txt: "📝",
+  rtf: "📝",
   // Image types
-  jpg: "🖼️", jpeg: "🖼️",
-  png: "🖼️", gif: "🖼️",
-  bmp: "🖼️", webp: "🖼️",
+  jpg: "🖼️",
+  jpeg: "🖼️",
+  png: "🖼️",
+  gif: "🖼️",
+  bmp: "🖼️",
+  webp: "🖼️",
   // Archive types
-  zip: "📦", rar: "📦",
-  "7z": "📦", tar: "📦",
+  zip: "📦",
+  rar: "📦",
+  "7z": "📦",
+  tar: "📦",
   gz: "📦",
   // Code types
-  js: "📜", jsx: "📜",
-  ts: "📜", tsx: "📜",
-  py: "📜", java: "📜",
-  cpp: "📜", cs: "📜",
-  html: "📜", css: "📜",
+  js: "📜",
+  jsx: "📜",
+  ts: "📜",
+  tsx: "📜",
+  py: "📜",
+  java: "📜",
+  cpp: "📜",
+  cs: "📜",
+  html: "📜",
+  css: "📜",
   // Other types
-  md: "📑", json: "📑",
-  xml: "📑", yaml: "📑",
+  md: "📑",
+  json: "📑",
+  xml: "📑",
+  yaml: "📑",
   yml: "📑",
 };
 
@@ -139,7 +155,7 @@ class PlaneService {
     this.projectCache = null;
     logger.info("PlaneService initialized", {
       workspace: config.WORKSPACE_SLUG,
-      project: config.PROJECT_ID
+      project: config.PROJECT_ID,
     });
   }
 
@@ -171,7 +187,9 @@ class PlaneService {
         };
         return acc;
       }, {});
-      logger.debug("States cached successfully", { count: Object.keys(this.statesCache).length });
+      logger.debug("States cached successfully", {
+        count: Object.keys(this.statesCache).length,
+      });
       return this.statesCache;
     } catch (error) {
       logger.error("Error fetching states", error);
@@ -201,7 +219,9 @@ class PlaneService {
         };
         return acc;
       }, {});
-      logger.debug("Labels cached successfully", { count: Object.keys(this.labelsCache).length });
+      logger.debug("Labels cached successfully", {
+        count: Object.keys(this.labelsCache).length,
+      });
       return this.labelsCache;
     } catch (error) {
       logger.error("Error fetching labels", error);
@@ -227,7 +247,7 @@ class PlaneService {
       this.projectCache = response.data;
       logger.debug("Project details cached successfully", {
         identifier: this.projectCache.identifier,
-        name: this.projectCache.name
+        name: this.projectCache.name,
       });
       return this.projectCache;
     } catch (error) {
@@ -290,12 +310,15 @@ class PlaneService {
       queryParams.append("order_by", "-created_at"); // Sort by creation date, newest first
 
       const response = await planeApi.get(
-        `/workspaces/${config.WORKSPACE_SLUG}/projects/${config.PROJECT_ID
+        `/workspaces/${config.WORKSPACE_SLUG}/projects/${
+          config.PROJECT_ID
         }/issues/?${queryParams.toString()}`
       );
 
       if (!response.data || !Array.isArray(response.data.results)) {
-        logger.warn("No issues found or invalid response", { response: response.data });
+        logger.warn("No issues found or invalid response", {
+          response: response.data,
+        });
         return [];
       }
 
@@ -304,7 +327,9 @@ class PlaneService {
         formatted_id: `${project.identifier}-${issue.sequence_id}`,
       }));
 
-      logger.info("Issues fetched successfully", { count: enhancedResults.length });
+      logger.info("Issues fetched successfully", {
+        count: enhancedResults.length,
+      });
       return {
         ...response.data,
         results: enhancedResults,
@@ -328,7 +353,7 @@ class PlaneService {
       );
       logger.info("Issue created successfully", {
         issueId: response.data.id,
-        sequenceId: response.data.sequence_id
+        sequenceId: response.data.sequence_id,
       });
       return response.data;
     } catch (error) {
@@ -345,22 +370,24 @@ class PlaneService {
   async getIssueById(issueId) {
     try {
       logger.debug("Fetching issue by ID", { issueId });
-      const [issue, states, labels, attachments] = await Promise.all([
+      const [issue, states, labels, attachments, project] = await Promise.all([
         planeApi.get(
           `/workspaces/${config.WORKSPACE_SLUG}/projects/${config.PROJECT_ID}/issues/${issueId}/`
         ),
         this.getStates(),
         this.getLabels(),
         this.getIssueAttachments(issueId),
+        this.getProjectDetails(),
       ]);
 
       const formattedIssue = {
         ...this.formatIssueData(issue.data, states, labels),
         attachments: attachments,
+        formatted_id: `${project.identifier}-${issue.data.sequence_id}`,
       };
       logger.debug("Issue fetched successfully", {
         issueId,
-        hasAttachments: attachments.length > 0
+        hasAttachments: attachments.length > 0,
       });
       return formattedIssue;
     } catch (error) {
@@ -384,7 +411,7 @@ class PlaneService {
       const attachments = Array.isArray(response.data) ? response.data : [];
       logger.debug("Attachments fetched successfully", {
         issueId,
-        count: attachments.length
+        count: attachments.length,
       });
       return attachments;
     } catch (error) {
@@ -418,7 +445,7 @@ class PlaneService {
       logger.info("Issue fetched successfully", {
         sequenceId,
         issueId: issue.data.id,
-        hasAttachments: attachments.length > 0
+        hasAttachments: attachments.length > 0,
       });
       return formattedIssue;
     } catch (error) {
@@ -439,7 +466,7 @@ class PlaneService {
   }
 
   formatFileSize(bytes) {
-    const units = ['B', 'KB', 'MB', 'GB'];
+    const units = ["B", "KB", "MB", "GB"];
     let size = bytes;
     let unitIndex = 0;
 
@@ -453,12 +480,18 @@ class PlaneService {
 
   validateFileSize(size) {
     if (size > MAX_FILE_SIZE) {
-      const error = new Error(`File size (${this.formatFileSize(size)}) exceeds maximum allowed size of ${this.formatFileSize(MAX_FILE_SIZE)}`);
+      const error = new Error(
+        `File size (${this.formatFileSize(
+          size
+        )}) exceeds maximum allowed size of ${this.formatFileSize(
+          MAX_FILE_SIZE
+        )}`
+      );
       logger.error("File size validation failed", {
         size,
         maxSize: MAX_FILE_SIZE,
         formattedSize: this.formatFileSize(size),
-        formattedMaxSize: this.formatFileSize(MAX_FILE_SIZE)
+        formattedMaxSize: this.formatFileSize(MAX_FILE_SIZE),
       });
       throw error;
     }
@@ -479,18 +512,18 @@ class PlaneService {
         issueId,
         fileName,
         contentType,
-        fileSize: fileBuffer.length
+        fileSize: fileBuffer.length,
       });
 
       // Input validation
       if (!fileBuffer || !Buffer.isBuffer(fileBuffer)) {
-        throw new Error('Invalid file buffer provided');
+        throw new Error("Invalid file buffer provided");
       }
-      if (!fileName || typeof fileName !== 'string') {
-        throw new Error('Invalid file name provided');
+      if (!fileName || typeof fileName !== "string") {
+        throw new Error("Invalid file name provided");
       }
-      if (!contentType || typeof contentType !== 'string') {
-        throw new Error('Invalid content type provided');
+      if (!contentType || typeof contentType !== "string") {
+        throw new Error("Invalid content type provided");
       }
 
       this.validateFileSize(fileBuffer.length);
@@ -501,50 +534,56 @@ class PlaneService {
       try {
         // Create a direct axios request to match curl command
         uploadCredentialsResponse = await axios({
-          method: 'post',
+          method: "post",
           url: `https://api.plane.so/api/v1/workspaces/${config.WORKSPACE_SLUG}/projects/${config.PROJECT_ID}/issues/${issueId}/issue-attachments/`,
           headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': config.PLANE_API_KEY
+            "Content-Type": "application/json",
+            "x-api-key": config.PLANE_API_KEY,
           },
           data: {
             name: fileName,
             size: fileBuffer.length,
-            type: contentType
-          }
+            type: contentType,
+          },
         });
       } catch (error) {
         logger.error("Upload credentials error", error);
         if (error.response?.status === 404) {
-          throw new Error('Issue not found');
+          throw new Error("Issue not found");
         }
         if (error.response?.status === 413) {
-          throw new Error('File size too large');
+          throw new Error("File size too large");
         }
-        throw new Error('Failed to get upload credentials: ' + (error.response?.data?.error || error.message));
+        throw new Error(
+          "Failed to get upload credentials: " +
+            (error.response?.data?.error || error.message)
+        );
       }
 
       const { upload_data, asset_id } = uploadCredentialsResponse.data;
       if (!upload_data || !asset_id) {
-        throw new Error('Invalid upload credentials received from server');
+        throw new Error("Invalid upload credentials received from server");
       }
 
       // Step 2: Upload file to S3
       logger.debug("Uploading file to storage", {
         uploadUrl: upload_data.url,
-        assetId: asset_id
+        assetId: asset_id,
       });
       const formData = new FormData();
       // Add required S3 fields in specific order
-      formData.append('Content-Type', contentType);
-      formData.append('key', upload_data.fields.key);
-      formData.append('x-amz-algorithm', upload_data.fields['x-amz-algorithm']);
-      formData.append('x-amz-credential', upload_data.fields['x-amz-credential']);
-      formData.append('x-amz-date', upload_data.fields['x-amz-date']);
-      formData.append('policy', upload_data.fields.policy);
-      formData.append('x-amz-signature', upload_data.fields['x-amz-signature']);
+      formData.append("Content-Type", contentType);
+      formData.append("key", upload_data.fields.key);
+      formData.append("x-amz-algorithm", upload_data.fields["x-amz-algorithm"]);
+      formData.append(
+        "x-amz-credential",
+        upload_data.fields["x-amz-credential"]
+      );
+      formData.append("x-amz-date", upload_data.fields["x-amz-date"]);
+      formData.append("policy", upload_data.fields.policy);
+      formData.append("x-amz-signature", upload_data.fields["x-amz-signature"]);
       // File must be the last field
-      formData.append('file', fileBuffer, {
+      formData.append("file", fileBuffer, {
         filename: fileName,
         contentType: contentType,
       });
@@ -553,34 +592,40 @@ class PlaneService {
         await axios.post(upload_data.url, formData, {
           headers: {
             ...formData.getHeaders(),
-            'Content-Type': 'multipart/form-data'
+            "Content-Type": "multipart/form-data",
           },
         });
       } catch (error) {
         logger.error("Storage upload error", error);
-        throw new Error('Failed to upload file to storage: ' + (error.response?.data?.error || error.message));
+        throw new Error(
+          "Failed to upload file to storage: " +
+            (error.response?.data?.error || error.message)
+        );
       }
 
       // Step 3: Complete the upload
       logger.debug("Completing upload process", { asset_id });
       try {
         const completeResponse = await axios({
-          method: 'patch',
+          method: "patch",
           url: `https://api.plane.so/api/v1/workspaces/${config.WORKSPACE_SLUG}/projects/${config.PROJECT_ID}/issues/${issueId}/issue-attachments/${asset_id}`,
           headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': config.PLANE_API_KEY
-          }
+            "Content-Type": "application/json",
+            "x-api-key": config.PLANE_API_KEY,
+          },
         });
         logger.info("File upload completed successfully", {
           issueId,
           fileName,
-          asset_id
+          asset_id,
         });
         return completeResponse.data;
       } catch (error) {
         logger.error("Complete upload error", error);
-        throw new Error('Failed to complete upload: ' + (error.response?.data?.error || error.message));
+        throw new Error(
+          "Failed to complete upload: " +
+            (error.response?.data?.error || error.message)
+        );
       }
     } catch (error) {
       logger.error("File upload failed", error);
