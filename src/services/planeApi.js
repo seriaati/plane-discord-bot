@@ -322,7 +322,7 @@ class PlaneService {
         `/workspaces/${config.WORKSPACE_SLUG}/projects/${config.PROJECT_ID}/issues/`,
         {
           name: title,
-          description,
+          description_html: `<p class="editor-paragraph-block">${description}</p>`,
           priority,
         }
       );
